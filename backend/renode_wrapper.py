@@ -34,7 +34,14 @@ class RenodeWrapper:
             logger.warning("pyrenode3 not found. Falling back to Mock mode.")
             logger.info("RenodeWrapper initialized (Mock)")
 
+    def wait_for_emulation(self):
+        if not PYRENODE_AVAILABLE:
+            return
+        while not hasattr(self.emulation, 'renode') or not hasattr(self.emulation.renode, 'renode_path'):
+            time.sleep(0.1)
+
     def start_gui(self):
+        self.wait_for_emulation()
         if not PYRENODE_AVAILABLE:
             logger.warning("pyrenode3 not available, cannot start GUI.")
             return

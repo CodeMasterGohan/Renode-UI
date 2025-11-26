@@ -5,6 +5,7 @@ from qasync import QEventLoop
 from main_window import MainWindow
 from backend.async_bridge import RenodeBridge
 import argparse
+import threading
 
 def main():
     parser = argparse.ArgumentParser(description="Pacer UI application")
@@ -27,7 +28,8 @@ def main():
     asyncio.set_event_loop(loop)
 
     bridge = RenodeBridge(sys_bus_params=sys_bus_params)
-    bridge.wrapper.start_gui()
+    gui_thread = threading.Thread(target=bridge.wrapper.start_gui, daemon=True)
+    gui_thread.start()
     window = MainWindow(bridge)
     window.show()
 
