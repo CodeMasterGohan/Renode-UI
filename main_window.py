@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from PySide6.QtCore import QObject, Signal
-from PySide6.QtWidgets import QMainWindow, QLabel, QVBoxLayout, QWidget, QPushButton, QHBoxLayout, QFileDialog, QMessageBox, QTextEdit
+from PySide6.QtWidgets import QMainWindow, QLabel, QVBoxLayout, QWidget, QPushButton, QHBoxLayout, QFileDialog, QMessageBox, QTextEdit, QLineEdit
 
 from widgets.memory_watch import MemoryWatchWidget
 
@@ -61,6 +61,18 @@ class MainWindow(QMainWindow):
         self.log_view = QTextEdit()
         self.log_view.setReadOnly(True)
         self.layout.addWidget(self.log_view)
+
+        # Command Input
+        cmd_layout = QHBoxLayout()
+        self.cmd_input = QLineEdit()
+        self.cmd_input.setPlaceholderText("Enter command...")
+        self.cmd_input.returnPressed.connect(self.send_command_handler)
+        cmd_layout.addWidget(self.cmd_input)
+
+        self.send_btn = QPushButton("Send")
+        self.send_btn.clicked.connect(self.send_command_handler)
+        cmd_layout.addWidget(self.send_btn)
+        self.layout.addLayout(cmd_layout)
 
         # Setup Logging
         self.log_handler = LogHandler()
@@ -126,12 +138,29 @@ class MainWindow(QMainWindow):
             self.status_label.setText("Status: Error")
             QMessageBox.critical(self, "Error", str(e))
 
+    def send_command_handler(self):
+        command = self.cmd_input.text()
+        if command:
+            asyncio.ensure_future(self.send_command(command))
+            self.cmd_input.clear()
+
+    async def send_command(self, command):
+        try:
+            await self.bridge.execute_command(command)
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to send command: {e}")
+
     async def monitor_loop(self):
         try:
             while True:
                 # In a real app, check if simulation is actually running
                 # For now, we assume if this task is running, we should poll
                 
+                # Fetch and display output
+                output = await self.bridge.get_output()
+                if output:
+                    self.log_view.append(output)
+
                 # Iterate over watches
                 # We need to access watches safely. 
                 # Since we are in the same thread (asyncio on main thread), it's safe to read self.memory_watch.watches
@@ -142,6 +171,6 @@ class MainWindow(QMainWindow):
                     except Exception as e:
                         logging.error(f"Error reading memory: {e}")
                 
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(0.1)
         except asyncio.CancelledError:
             pass

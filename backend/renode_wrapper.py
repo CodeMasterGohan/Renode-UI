@@ -6,6 +6,7 @@ import traceback
 try:
     import pyrenode3
     from pyrenode3.wrappers import Emulation, Monitor
+    from Antmicro.Renode.UserInterface import CommandInteractionEater, ICommandInteraction
     PYRENODE_AVAILABLE = True
 except ImportError:
     PYRENODE_AVAILABLE = False
@@ -14,17 +15,40 @@ except ImportError:
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+class OutputCollector(ICommandInteraction):
+    def __init__(self):
+        self.buffer = ""
+
+    def GetContents(self):
+        return self.buffer
+
+    def Clear(self):
+        self.buffer = ""
+
+    def Write(self, s):
+        self.buffer += s
+
+    def WriteError(self, s):
+        self.buffer += f"ERROR: {s}"
+
+    def WriteStatus(self, s):
+        # For now, just append to buffer. Might want to handle differently.
+        self.buffer += f"STATUS: {s}"
+
 class RenodeWrapper:
     def __init__(self, sys_bus_params=None):
         self.running = False
         self.emulation = None
         self.monitor = None
+        self.output_collector = None
         if PYRENODE_AVAILABLE:
             if sys_bus_params:
                 self.emulation = Emulation(sysBusParams=sys_bus_params)
             else:
                 self.emulation = Emulation()
             self.monitor = Monitor()
+            self.output_collector = OutputCollector()
+            self.monitor.internal.Interaction = self.output_collector
             logger.info("RenodeWrapper initialized (Real)")
         else:
             logger.warning("pyrenode3 not found. Falling back to Mock mode.")
@@ -94,6 +118,25 @@ class RenodeWrapper:
             time.sleep(0.5)
             self.running = False
             logger.info("Simulation reset")
+
+    def execute_command(self, command: str):
+        logger.info(f"Executing command: {command}")
+        if PYRENODE_AVAILABLE:
+            try:
+                # The output will be captured by our OutputCollector
+                self.monitor.internal.HandleCommand(command)
+            except Exception as e:
+                logger.error(f"Failed to execute command: {e}")
+                raise e
+        else:
+            logger.info(f"Executed mock command: {command}")
+
+    def get_output(self) -> str:
+        if PYRENODE_AVAILABLE and self.output_collector:
+            output = self.output_collector.GetContents()
+            self.output_collector.Clear()
+            return output
+        return ""
 
     def read_memory(self, addr: int, width: int) -> int:
         if PYRENODE_AVAILABLE:

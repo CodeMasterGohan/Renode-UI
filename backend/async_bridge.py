@@ -20,3 +20,9 @@ class RenodeBridge:
 
     async def read_memory(self, addr: int, width: int) -> int:
         return await self.loop.run_in_executor(None, self.wrapper.read_memory, addr, width)
+
+    async def execute_command(self, command: str):
+        await self.loop.run_in_executor(None, self.wrapper.execute_command, command)
+
+    async def get_output(self) -> str:
+        return await self.loop.run_in_executor(None, self.wrapper.get_output)
