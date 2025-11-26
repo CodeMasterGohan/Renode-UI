@@ -1,6 +1,8 @@
 import time
 import logging
 import traceback
+import subprocess
+import atexit
 
 # Try to import pyrenode3
 try:
@@ -19,6 +21,7 @@ class RenodeWrapper:
         self.running = False
         self.emulation = None
         self.monitor = None
+        self.gui_process = None
         if PYRENODE_AVAILABLE:
             if sys_bus_params:
                 self.emulation = Emulation(sysBusParams=sys_bus_params)
@@ -26,9 +29,34 @@ class RenodeWrapper:
                 self.emulation = Emulation()
             self.monitor = Monitor()
             logger.info("RenodeWrapper initialized (Real)")
+            atexit.register(self.stop_gui)
         else:
             logger.warning("pyrenode3 not found. Falling back to Mock mode.")
             logger.info("RenodeWrapper initialized (Mock)")
+
+    def start_gui(self):
+        if not PYRENODE_AVAILABLE:
+            logger.warning("pyrenode3 not available, cannot start GUI.")
+            return
+
+        if self.gui_process is not None and self.gui_process.poll() is None:
+            logger.info("Renode GUI is already running.")
+            return
+
+        try:
+            renode_path = self.emulation.renode.renode_path
+            logger.info(f"Attempting to start Renode GUI from: {renode_path}")
+            self.gui_process = subprocess.Popen([renode_path, "--gui"])
+        except Exception as e:
+            logger.error(f"Failed to start Renode GUI: {e}")
+            logger.error(traceback.format_exc())
+            self.gui_process = None
+
+    def stop_gui(self):
+        if self.gui_process and self.gui_process.poll() is None:
+            logger.info("Stopping Renode GUI process.")
+            self.gui_process.terminate()
+            self.gui_process.wait()
 
     def load_script(self, path: str):
         logger.info(f"Loading script: {path}")

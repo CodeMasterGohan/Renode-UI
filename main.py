@@ -27,6 +27,7 @@ def main():
     asyncio.set_event_loop(loop)
 
     bridge = RenodeBridge(sys_bus_params=sys_bus_params)
+    bridge.wrapper.start_gui()
     window = MainWindow(bridge)
     window.show()
 
