@@ -1,0 +1,4 @@
+PySide6
+qasync
+psutil
+pyrenode3[all] @ git+https://github.com/antmicro/pyrenode3.git

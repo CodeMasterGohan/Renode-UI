@@ -1,0 +1,36 @@
+# hello.resc - Renode script for MPC5567 "hello world"
+
+# Create a machine instance (can be named anything)
+mach create "mpc5554"
+
+#custom_peripherals
+#include @./src/Infrastructure/src/custom_peripherals/MPC5554_FLEXCAN.cs
+#include @./src/Infrastructure/src/custom_peripherals/MPC5554_CROSSBAR.cs
+#include @./src/Infrastructure/src/Emulator/Peripherals/Peripherals/CustomPeripherals/MPC5554_SIU.cs
+#include @./src/Infrastructure/src/Emulator/Peripherals/Peripherals/CustomPeripherals/MPC5554_EBI.cs
+
+# Load the platform description for MPC5567
+# Ensure mpc5567.repl is in the same directory or provide the full path
+machine LoadPlatformDescription @platforms/cpus/mpc5554.repl
+
+# Load the compiled ELF application onto the sysbus (system bus)
+# Ensure main.elf is in the same directory or provide the full path
+sysbus LoadELF @./hello-world/main.elf
+sysbus LogPeripheralAccess sysbus.uart
+
+showAnalyzer sysbus.uart
+# This log level is super noisy
+logLevel -1
+
+# JIRA task PACER-22 Setup Renode monitoring of I/O while it executes the provided binary.
+sysbus.cpu LogFunctionNames True
+
+sysbus.cpu Log WARNING "Testing Forced Log functionality"
+
+
+# Start the simulation
+start
+
+# To run this script:
+# 1. Open Renode.
+# 2. In the Renode Monitor, type: include @hello.resc

@@ -1,0 +1,42 @@
+#siu_test.resc is a test script created to test siu functionality.
+ 
+ 
+#set up machine
+mach create "mpc5554"
+machine LoadPlatformDescription @platforms/cpus/mpc5554.repl
+ 
+#show accesses to Peripheral
+#sysbus LogPeripheralAccess siu
+sysbus.cpu Reset
+ 
+ 
+#start simulation
+start
+
+#test read and write word at even and odd offsets
+sysbus WriteWord 0xC3F90040 0x1111
+sysbus ReadWord 0xC3F90040
+sysbus WriteWord 0xC3F90042 0x1111
+sysbus ReadWord 0xC3F90042
+sysbus WriteWord 0xC3F90041 0x0000
+sysbus ReadWord 0xC3F90040
+sysbus ReadWord 0xC3F90042
+sysbus ReadWord 0xC3F90041
+
+#test read and write byte at even and odd offsets
+sysbus WriteByte 0xC3F90041 0x11
+sysbus ReadWord 0xC3F90041
+sysbus ReadByte 0xC3F90041
+
+sysbus WriteByte 0xC3F90042 0x11
+sysbus ReadWord 0xC3F90042
+sysbus ReadByte 0xC3F90042
+
+#test read and write double word at even and odd offsets
+sysbus WriteDoubleWord 0xC3F90040 0x00000000
+sysbus ReadDoubleWord 0xC3F90040
+sysbus ReadWord 0xC3F90040
+sysbus ReadWord 0xC3F90042
+sysbus WriteDoubleWord 0xC3F90041 0x11111111
+sysbus ReadDoubleWord 0xC3F90040
+sysbus ReadDoubleWord 0xC3F90042
