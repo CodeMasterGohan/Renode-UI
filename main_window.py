@@ -1,7 +1,8 @@
 import asyncio
 import logging
 from PySide6.QtCore import QObject, Signal
-from PySide6.QtWidgets import QMainWindow, QLabel, QVBoxLayout, QWidget, QPushButton, QHBoxLayout, QFileDialog, QMessageBox, QTextEdit
+from PySide6.QtWidgets import QMainWindow, QLabel, QVBoxLayout, QWidget, QPushButton, QHBoxLayout, QFileDialog, QMessageBox, QTextEdit, QTabWidget
+from PySide6.QtGui import QFont
 
 from widgets.memory_watch import MemoryWatchWidget
 
@@ -57,16 +58,39 @@ class MainWindow(QMainWindow):
         self.memory_watch = MemoryWatchWidget()
         self.layout.addWidget(self.memory_watch)
 
-        # Log View
+        # Tabs
+        self.tabs = QTabWidget()
+        self.layout.addWidget(self.tabs)
+
+        # Tab 1: App Logs
         self.log_view = QTextEdit()
         self.log_view.setReadOnly(True)
-        self.layout.addWidget(self.log_view)
+        self.tabs.addTab(self.log_view, "App Logs")
+
+        # Tab 2: Renode Monitor
+        self.renode_monitor = QTextEdit()
+        self.renode_monitor.setReadOnly(True)
+        self.renode_monitor.setStyleSheet("background-color: #1e1e1e; color: #00ff00; font-family: monospace;")
+        self.renode_monitor.setFont(QFont("Monospace"))
+        self.tabs.addTab(self.renode_monitor, "Renode Monitor")
 
         # Setup Logging
         self.log_handler = LogHandler()
         self.log_handler.log_signal.connect(self.log_view.append)
         logging.getLogger().addHandler(self.log_handler)
         logging.getLogger().setLevel(logging.INFO)
+
+        # Setup Renode Logging
+        self.bridge.setup_logging(self.append_renode_log)
+
+        # Monitoring Task
+        self.monitor_task = None
+
+    def append_renode_log(self, msg):
+        self.renode_monitor.append(msg)
+        # Auto scroll
+        sb = self.renode_monitor.verticalScrollBar()
+        sb.setValue(sb.maximum())
 
         # Monitoring Task
         self.monitor_task = None
