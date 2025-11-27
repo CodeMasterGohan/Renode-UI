@@ -37,8 +37,37 @@ class RenodeWrapper:
         self.log_file_path = None
         self.log_thread = None
         self.stop_logging_event = None
+        self.log_callback = None
+
+    def _execute_and_log(self, command: str):
+        """
+        Executes a monitor command and logs the output/error via the callback.
+        Returns (output, error).
+        """
+        if not PYRENODE_AVAILABLE:
+            return "", ""
+        
+        try:
+            # Echo command
+            if self.log_callback:
+                self.log_callback(f"(monitor) {command}")
+            
+            output, error = self.monitor.execute(command)
+            
+            if output and self.log_callback:
+                self.log_callback(output.strip())
+            
+            if error and self.log_callback:
+                self.log_callback(f"Error: {error.strip()}")
+                
+            return output, error
+        except Exception as e:
+            if self.log_callback:
+                self.log_callback(f"Exception executing '{command}': {e}")
+            raise e
 
     def setup_logging(self, callback):
+        self.log_callback = callback
         """
         Sets up Renode logging to a temporary file and tails it, 
         calling `callback` with each new line.
@@ -108,7 +137,21 @@ class RenodeWrapper:
         if PYRENODE_AVAILABLE:
             try:
                 self.emulation.clear()
-                self.monitor.execute(f"i @{path}")
+                
+                # Use execute_script to properly capture errors
+                if self.log_callback:
+                    self.log_callback(f"(monitor) i @{path}")
+                
+                output, error = self.monitor.execute_script(path)
+                
+                if output and self.log_callback:
+                    self.log_callback(output.strip())
+                
+                if error:
+                    if self.log_callback:
+                        self.log_callback(f"Error: {error.strip()}")
+                    raise Exception(f"Renode Error: {error}")
+                    
                 logger.info("Script loaded successfully")
             except Exception as e:
                 logger.error("Failed to load script. Exception type: %s", type(e))
@@ -125,7 +168,10 @@ class RenodeWrapper:
         logger.info("Starting simulation...")
         if PYRENODE_AVAILABLE:
             try:
-                self.emulation.StartAll()
+                # self.emulation.StartAll()
+                output, error = self._execute_and_log("start")
+                if error:
+                     raise Exception(f"Renode Error: {error}")
                 self.running = True
                 logger.info("Simulation started")
             except Exception as e:
@@ -142,7 +188,10 @@ class RenodeWrapper:
         logger.info("Pausing simulation...")
         if PYRENODE_AVAILABLE:
             try:
-                self.emulation.PauseAll()
+                # self.emulation.PauseAll()
+                output, error = self._execute_and_log("pause")
+                if error:
+                     raise Exception(f"Renode Error: {error}")
                 self.running = False
                 logger.info("Simulation paused")
             except Exception as e:
@@ -157,7 +206,10 @@ class RenodeWrapper:
         logger.info("Resetting simulation...")
         if PYRENODE_AVAILABLE:
             try:
-                self.emulation.clear()
+                # self.emulation.clear()
+                output, error = self._execute_and_log("Clear")
+                if error:
+                     raise Exception(f"Renode Error: {error}")
                 self.running = False
                 logger.info("Simulation reset")
             except Exception as e:
