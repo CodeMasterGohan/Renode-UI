@@ -6,7 +6,7 @@ import traceback
 try:
     import pyrenode3
     from pyrenode3.wrappers import Emulation, Monitor
-    from Antmicro.Renode.UserInterface import CommandInteractionEater, ICommandInteraction
+    from Antmicro.Renode.UserInterface import CommandInteractionEater
     PYRENODE_AVAILABLE = True
 except ImportError:
     PYRENODE_AVAILABLE = False
@@ -14,26 +14,6 @@ except ImportError:
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-
-class OutputCollector(ICommandInteraction):
-    def __init__(self):
-        self.buffer = ""
-
-    def GetContents(self):
-        return self.buffer
-
-    def Clear(self):
-        self.buffer = ""
-
-    def Write(self, s):
-        self.buffer += s
-
-    def WriteError(self, s):
-        self.buffer += f"ERROR: {s}"
-
-    def WriteStatus(self, s):
-        # For now, just append to buffer. Might want to handle differently.
-        self.buffer += f"STATUS: {s}"
 
 class RenodeWrapper:
     def __init__(self, sys_bus_params=None):
@@ -47,7 +27,7 @@ class RenodeWrapper:
             else:
                 self.emulation = Emulation()
             self.monitor = Monitor()
-            self.output_collector = OutputCollector()
+            self.output_collector = CommandInteractionEater()
             self.monitor.internal.Interaction = self.output_collector
             logger.info("RenodeWrapper initialized (Real)")
         else:

@@ -101,4 +101,6 @@ else
 fi
 
 echo "Running application (main.py)..."
+export QT_QPA_PLATFORM_PLUGIN_PATH="$VENV_DIR/lib/python3.12/site-packages/PySide6/Qt/plugins"
+export LD_LIBRARY_PATH="$VENV_DIR/lib/python3.12/site-packages/PySide6/Qt/lib:${LD_LIBRARY_PATH:-}"
 "$PY_BIN" main.py "${APP_ARGS[@]}"
