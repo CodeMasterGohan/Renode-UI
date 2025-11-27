@@ -1,3 +1,11 @@
+"""
+Main entry point for the Renode UI application.
+
+This script parses command-line arguments, sets up the Qt application and
+event loop, initializes the RenodeBridge and MainWindow, and starts the
+application.
+"""
+
 import sys
 import asyncio
 from PySide6.QtWidgets import QApplication
@@ -7,6 +15,11 @@ from backend.async_bridge import RenodeBridge
 import argparse
 
 def main():
+    """
+    The main function of the application.
+
+    Parses arguments, initializes the application, and starts the event loop.
+    """
     parser = argparse.ArgumentParser(description="Pacer UI application")
     parser.add_argument("--sys-bus-params", type=str,
                         help="Comma-separated key=value pairs for system bus parameters (e.g., 'key1=value1,key2=value2')")

@@ -6,7 +6,20 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 
 class AddWatchDialog(QDialog):
+    """
+    Dialog for adding a new memory watch.
+
+    Allows the user to input the memory address, a name for the watch,
+    and the data type (Word, Byte, HalfWord).
+    """
+
     def __init__(self, parent=None):
+        """
+        Initializes the AddWatchDialog.
+
+        Args:
+            parent (QWidget, optional): The parent widget. Defaults to None.
+        """
         super().__init__(parent)
         self.setWindowTitle("Add Memory Watch")
         
@@ -30,6 +43,12 @@ class AddWatchDialog(QDialog):
         self.layout.addWidget(self.buttons)
 
     def get_data(self):
+        """
+        Retrieves the data entered by the user.
+
+        Returns:
+            dict: A dictionary containing "address" (str), "name" (str), and "type" (str).
+        """
         return {
             "address": self.address_input.text(),
             "name": self.name_input.text(),
@@ -37,7 +56,17 @@ class AddWatchDialog(QDialog):
         }
 
 class MemoryWatchWidget(QWidget):
+    """
+    Widget for displaying and managing memory watches.
+
+    Provides a table view of memory addresses being watched, with controls
+    to add or remove watches.
+    """
+
     def __init__(self):
+        """
+        Initializes the MemoryWatchWidget.
+        """
         super().__init__()
         self.layout = QVBoxLayout(self)
         
@@ -62,6 +91,11 @@ class MemoryWatchWidget(QWidget):
         self.watches = [] # List of dicts: {address, name, type, row_index}
 
     def add_watch(self):
+        """
+        Opens the AddWatchDialog and adds a new watch if confirmed.
+
+        Handles user input validation for the address.
+        """
         dialog = AddWatchDialog(self)
         if dialog.exec():
             data = dialog.get_data()
@@ -85,6 +119,9 @@ class MemoryWatchWidget(QWidget):
                 QMessageBox.warning(self, "Invalid Input", "Address must be a valid hex string (e.g., 0x1000)")
 
     def remove_watch(self):
+        """
+        Removes the currently selected watch from the list.
+        """
         current_row = self.table.currentRow()
         if current_row >= 0:
             self.table.removeRow(current_row)
@@ -98,6 +135,11 @@ class MemoryWatchWidget(QWidget):
             self.rebuild_watches()
 
     def rebuild_watches(self):
+        """
+        Rebuilds the internal list of watches from the table state.
+
+        This ensures the internal state matches the UI after rows are removed.
+        """
         self.watches = []
         for row in range(self.table.rowCount()):
             addr_str = self.table.item(row, 0).text()
@@ -111,4 +153,11 @@ class MemoryWatchWidget(QWidget):
             })
 
     def update_value(self, row, value):
+        """
+        Updates the displayed value for a specific row in the watch table.
+
+        Args:
+            row (int): The row index to update.
+            value (int): The new value to display.
+        """
         self.table.setItem(row, 3, QTableWidgetItem(hex(value)))

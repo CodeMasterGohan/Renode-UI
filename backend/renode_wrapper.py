@@ -19,7 +19,24 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 class RenodeWrapper:
+    """
+    Wrapper for the Renode emulation environment.
+
+    This class handles the initialization and control of the Renode emulator,
+    managing the lifecycle of the emulation and providing methods to interact
+    with it, such as loading scripts, starting/pausing/resetting simulation,
+    and reading memory. It handles both real execution (if pyrenode3 is available)
+    and mock execution for testing purposes.
+    """
+
     def __init__(self, sys_bus_params=None):
+        """
+        Initializes the RenodeWrapper.
+
+        Args:
+            sys_bus_params (str, optional): Comma-separated key=value pairs for
+                system bus parameters. Defaults to None.
+        """
         self.running = False
         self.emulation = None
         self.monitor = None
@@ -40,8 +57,15 @@ class RenodeWrapper:
 
     def setup_logging(self, callback):
         """
-        Sets up Renode logging to a temporary file and tails it, 
-        calling `callback` with each new line.
+        Sets up Renode logging to a temporary file and tails it.
+
+        This method configures Renode to log to a temporary file and starts a
+        background thread to read new lines from that file and pass them to
+        the provided callback function.
+
+        Args:
+            callback (callable): A function that accepts a single string argument
+                (the log message) and processes it.
         """
         if not PYRENODE_AVAILABLE:
             logger.warning("Logging not available in Mock mode")
@@ -74,6 +98,17 @@ class RenodeWrapper:
         self.log_thread.start()
 
     def _tail_log_file(self, path, callback, stop_event):
+        """
+        Tails a log file and invokes a callback for each new line.
+
+        This internal method runs in a separate thread. It continuously reads
+        from the specified log file until the stop_event is set.
+
+        Args:
+            path (str): The path to the log file to tail.
+            callback (callable): The function to call with each new log line.
+            stop_event (threading.Event): An event to signal when to stop tailing.
+        """
         logger.info("Log tailing started")
         try:
             with open(path, "r") as f:
@@ -91,6 +126,11 @@ class RenodeWrapper:
             logger.info("Log tailing stopped")
 
     def cleanup(self):
+        """
+        Cleans up resources used by the wrapper.
+
+        Stops the logging thread and removes the temporary log file.
+        """
         if self.stop_logging_event:
             self.stop_logging_event.set()
         if self.log_thread:
@@ -104,6 +144,16 @@ class RenodeWrapper:
 
 
     def load_script(self, path: str):
+        """
+        Loads a Renode script into the emulator.
+
+        Args:
+            path (str): The file path to the Renode script (.resc).
+
+        Raises:
+            Exception: If loading the script fails in the Renode environment.
+            ValueError: If the path is invalid (in Mock mode).
+        """
         logger.info(f"Loading script: {path}")
         if PYRENODE_AVAILABLE:
             try:
@@ -122,6 +172,12 @@ class RenodeWrapper:
             logger.info("Script loaded successfully")
 
     def start(self):
+        """
+        Starts the Renode simulation.
+
+        Raises:
+            Exception: If starting the simulation fails.
+        """
         logger.info("Starting simulation...")
         if PYRENODE_AVAILABLE:
             try:
@@ -139,6 +195,12 @@ class RenodeWrapper:
             logger.info("Simulation started")
 
     def pause(self):
+        """
+        Pauses the Renode simulation.
+
+        Raises:
+            Exception: If pausing the simulation fails.
+        """
         logger.info("Pausing simulation...")
         if PYRENODE_AVAILABLE:
             try:
@@ -154,6 +216,14 @@ class RenodeWrapper:
             logger.info("Simulation paused")
 
     def reset(self):
+        """
+        Resets the Renode simulation.
+
+        Clears the current emulation state.
+
+        Raises:
+            Exception: If resetting the simulation fails.
+        """
         logger.info("Resetting simulation...")
         if PYRENODE_AVAILABLE:
             try:
@@ -169,6 +239,16 @@ class RenodeWrapper:
             logger.info("Simulation reset")
 
     def read_memory(self, addr: int, width: int) -> int:
+        """
+        Reads a value from memory at the specified address.
+
+        Args:
+            addr (int): The memory address to read from.
+            width (int): The width of the data to read in bytes (e.g., 4).
+
+        Returns:
+            int: The value read from memory. In Mock mode, returns a dummy value.
+        """
         if PYRENODE_AVAILABLE:
             # TODO: Implement real memory read using pyrenode3
             # For now, we'll just log and return a dummy value to avoid crashing

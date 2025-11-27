@@ -1,3 +1,11 @@
+"""
+Sample script demonstrating the use of `pyrenode3` to simulate a FOMU and HiFive Unleashed.
+
+This script sets up an emulation environment with two machines (FOMU and HiFive Unleashed),
+connects them via a virtual USB connector, loads the necessary binaries and device trees,
+and starts a terminal tester on the HiFive UART.
+"""
+
 #!/usr/bin/env -S python3 -m bpython -i
 
 from pyrenode3 import RPath
