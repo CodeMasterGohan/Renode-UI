@@ -28,3 +28,6 @@ class RenodeBridge:
         # This doesn't need to be async as it just sets up the thread
         self.wrapper.setup_logging(safe_callback)
 
+    async def monitor_command(self, command: str):
+        await self.loop.run_in_executor(None, self.wrapper.monitor_command, command)
+

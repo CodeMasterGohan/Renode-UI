@@ -232,3 +232,15 @@ class RenodeWrapper:
             # logger.debug(f"Reading memory at {hex(addr)}") # Commented out to avoid spam
             time.sleep(0.01) # fast read
             return 0xDEADBEEF # Mock value
+
+    def monitor_command(self, command: str):
+        """
+        Executes a monitor command from the UI.
+        """
+        logger.info(f"Executing monitor command: {command}")
+        try:
+            self._execute_and_log(command)
+        except Exception as e:
+            logger.error(f"Error executing monitor command: {e}")
+            # Error is already logged via _execute_and_log callback if possible, 
+            # or we can log it explicitly here if needed.
