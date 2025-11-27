@@ -73,7 +73,7 @@ class MainWindow(QMainWindow):
         
         self.renode_monitor = QTextEdit()
         self.renode_monitor.setReadOnly(True)
-        self.renode_monitor.setStyleSheet("background-color: #1e1e1e; color: #00ff00; font-family: monospace;")
+        # self.renode_monitor.setStyleSheet("background-color: #1e1e1e; color: #00ff00; font-family: monospace;")
         self.renode_monitor.setFont(QFont("Monospace"))
         monitor_layout.addWidget(self.renode_monitor)
         
