@@ -63,6 +63,24 @@ if ! command -v "$PYTHON" >/dev/null 2>&1; then
     exit 2
 fi
 
+# Check for mono
+if ! command -v mono >/dev/null 2>&1; then
+    if [ "$EUID" -ne 0 ]; then
+        echo "Error: Mono is missing. Please run this script as root (sudo) to install dependencies." >&2
+        echo "Usage: sudo $0 $@" >&2
+        exit 1
+    else
+        echo "Installing mono..."
+        DEBIAN_FRONTEND=noninteractive apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y mono-complete
+    fi
+fi
+
+# If running as root (and likely invoked via sudo), drop privileges for the rest of the execution
+if [ "$EUID" -eq 0 ] && [ -n "$SUDO_USER" ]; then
+    echo "Dependencies installed. Dropping privileges to user '$SUDO_USER' to run the application..."
+    exec sudo -u "$SUDO_USER" "$0" "$@"
+fi
+
 # Ensure Python >= 3.10
 if ! "$PYTHON" - <<'PY' 2>/dev/null
 import sys

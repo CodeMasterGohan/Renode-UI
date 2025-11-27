@@ -7,7 +7,7 @@ try:
     import pyrenode3
     from pyrenode3.wrappers import Emulation, Monitor
     PYRENODE_AVAILABLE = True
-except ImportError:
+except (ImportError, RuntimeError):
     PYRENODE_AVAILABLE = False
 
 # Configure logging
