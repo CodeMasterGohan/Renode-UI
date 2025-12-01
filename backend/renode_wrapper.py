@@ -6,6 +6,16 @@ import threading
 import tempfile
 import shutil
 
+# Automatically detect renode package if env var is not set
+if 'PYRENODE_PKG' not in os.environ:
+    # Look for renode-latest.pkg.tar.xz in the project root (one level up from this file's directory)
+    # This file is in backend/, so project root is ../
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    pkg_path = os.path.join(project_root, 'renode-latest.pkg.tar.xz')
+    if os.path.exists(pkg_path):
+        os.environ['PYRENODE_PKG'] = pkg_path
+        # logging.info(f"Auto-detected PYRENODE_PKG at: {pkg_path}") # Logger not set up yet
+
 # Try to import pyrenode3
 try:
     import pyrenode3

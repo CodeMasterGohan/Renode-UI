@@ -1,0 +1,9 @@
+echo "Renode .resc test file started."
+mach create
+machine Start
+
+python "import time"
+python "print('Starting slow loop...')"
+python "for i in range(10): print('Hello from Renode! ' + str(i)); time.sleep(1)"
+
+echo "Renode test finished."
