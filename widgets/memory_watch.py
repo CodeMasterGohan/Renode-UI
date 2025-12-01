@@ -1,3 +1,11 @@
+"""
+Memory Watch Widget Module.
+
+This module provides the UI components for watching memory addresses in the Renode simulation.
+It includes a dialog for adding new watches and a main widget for displaying and managing
+the list of watched addresses.
+"""
+
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
     QPushButton, QHeaderView, QDialog, QFormLayout, QLineEdit, QComboBox,
@@ -6,7 +14,20 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 
 class AddWatchDialog(QDialog):
+    """
+    A dialog for adding a new memory watch.
+
+    Allows the user to input the memory address (in hex), a descriptive name,
+    and the data type (Word, Byte, HalfWord).
+    """
+
     def __init__(self, parent=None):
+        """
+        Initializes the AddWatchDialog.
+
+        Args:
+            parent (QWidget, optional): The parent widget. Defaults to None.
+        """
         super().__init__(parent)
         self.setWindowTitle("Add Memory Watch")
         
@@ -30,6 +51,12 @@ class AddWatchDialog(QDialog):
         self.layout.addWidget(self.buttons)
 
     def get_data(self):
+        """
+        Retrieves the data entered by the user.
+
+        Returns:
+            dict: A dictionary containing 'address', 'name', and 'type'.
+        """
         return {
             "address": self.address_input.text(),
             "name": self.name_input.text(),
@@ -37,7 +64,16 @@ class AddWatchDialog(QDialog):
         }
 
 class MemoryWatchWidget(QWidget):
+    """
+    A widget for displaying and managing memory watches.
+
+    Provides a table view of watched memory addresses and buttons to add or remove watches.
+    """
+
     def __init__(self):
+        """
+        Initializes the MemoryWatchWidget.
+        """
         super().__init__()
         self.layout = QVBoxLayout(self)
         
@@ -62,6 +98,11 @@ class MemoryWatchWidget(QWidget):
         self.watches = [] # List of dicts: {address, name, type, row_index}
 
     def add_watch(self):
+        """
+        Opens the AddWatchDialog and adds a new watch if confirmed.
+
+        Validates that the address is a valid hex string before adding.
+        """
         dialog = AddWatchDialog(self)
         if dialog.exec():
             data = dialog.get_data()
@@ -85,6 +126,9 @@ class MemoryWatchWidget(QWidget):
                 QMessageBox.warning(self, "Invalid Input", "Address must be a valid hex string (e.g., 0x1000)")
 
     def remove_watch(self):
+        """
+        Removes the currently selected watch from the table and internal list.
+        """
         current_row = self.table.currentRow()
         if current_row >= 0:
             self.table.removeRow(current_row)
@@ -98,6 +142,11 @@ class MemoryWatchWidget(QWidget):
             self.rebuild_watches()
 
     def rebuild_watches(self):
+        """
+        Rebuilds the internal list of watches from the table contents.
+
+        This ensures the internal state matches the UI state after row removal.
+        """
         self.watches = []
         for row in range(self.table.rowCount()):
             addr_str = self.table.item(row, 0).text()
@@ -111,4 +160,11 @@ class MemoryWatchWidget(QWidget):
             })
 
     def update_value(self, row, value):
+        """
+        Updates the displayed value for a specific row in the watch table.
+
+        Args:
+            row (int): The row index to update.
+            value (int): The new value to display (will be formatted as hex).
+        """
         self.table.setItem(row, 3, QTableWidgetItem(hex(value)))

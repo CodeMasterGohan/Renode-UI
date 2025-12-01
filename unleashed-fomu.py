@@ -1,4 +1,11 @@
 #!/usr/bin/env -S python3 -m bpython -i
+"""
+Renode Unleashed-Fomu Simulation Script.
+
+This script sets up a complex Renode simulation involving two machines:
+a Fomu (FPGA) and a HiFive Unleashed (RISC-V). It connects them via a virtual
+USB connector and loads the necessary firmware (ELF) and device tree blobs (DTB).
+"""
 
 from pyrenode3 import RPath
 from pyrenode3.wrappers import Analyzer, Emulation, Monitor, TerminalTester

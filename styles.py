@@ -1,3 +1,9 @@
+"""
+Styles Module.
+
+This module defines the QSS (Qt Style Sheet) constants used to theme the application.
+It provides a Dark Theme implementation for various Qt widgets.
+"""
 
 DARK_THEME_QSS = """
 /* Global Styles */

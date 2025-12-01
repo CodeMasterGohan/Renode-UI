@@ -1,3 +1,11 @@
+"""
+Main Application Entry Point.
+
+This module initializes the PySide6 application, sets up the asyncio event loop
+using `qasync`, and launches the main window. It also handles command-line arguments
+for configuring the Renode system bus.
+"""
+
 import sys
 import asyncio
 from PySide6.QtWidgets import QApplication
@@ -7,6 +15,17 @@ from backend.async_bridge import RenodeBridge
 import argparse
 
 def main():
+    """
+    The main entry point for the application.
+
+    This function:
+    1. Parses command-line arguments.
+    2. Initializes the QApplication.
+    3. Sets up the application stylesheet.
+    4. Configures the asyncio event loop with qasync.
+    5. Initializes the RenodeBridge and MainWindow.
+    6. Starts the event loop.
+    """
     parser = argparse.ArgumentParser(description="Pacer UI application")
     parser.add_argument("--sys-bus-params", type=str,
                         help="Comma-separated key=value pairs for system bus parameters (e.g., 'key1=value1,key2=value2')")
