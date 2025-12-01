@@ -20,3 +20,14 @@ class RenodeBridge:
 
     async def read_memory(self, addr: int, width: int) -> int:
         return await self.loop.run_in_executor(None, self.wrapper.read_memory, addr, width)
+
+    def setup_logging(self, callback):
+        def safe_callback(msg):
+            self.loop.call_soon_threadsafe(callback, msg)
+        
+        # This doesn't need to be async as it just sets up the thread
+        self.wrapper.setup_logging(safe_callback)
+
+    async def monitor_command(self, command: str):
+        await self.loop.run_in_executor(None, self.wrapper.monitor_command, command)
+

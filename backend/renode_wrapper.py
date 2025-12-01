@@ -1,6 +1,20 @@
 import time
 import logging
 import traceback
+import os
+import threading
+import tempfile
+import shutil
+
+# Automatically detect renode package if env var is not set
+if 'PYRENODE_PKG' not in os.environ:
+    # Look for renode-latest.pkg.tar.xz in the project root (one level up from this file's directory)
+    # This file is in backend/, so project root is ../
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    pkg_path = os.path.join(project_root, 'renode-latest.pkg.tar.xz')
+    if os.path.exists(pkg_path):
+        os.environ['PYRENODE_PKG'] = pkg_path
+        # logging.info(f"Auto-detected PYRENODE_PKG at: {pkg_path}") # Logger not set up yet
 
 # Try to import pyrenode3
 try:
@@ -30,12 +44,124 @@ class RenodeWrapper:
             logger.warning("pyrenode3 not found. Falling back to Mock mode.")
             logger.info("RenodeWrapper initialized (Mock)")
 
+        self.log_file_path = None
+        self.log_thread = None
+        self.stop_logging_event = None
+        self.log_callback = None
+
+    def _execute_and_log(self, command: str):
+        """
+        Executes a monitor command and logs the output/error via the callback.
+        Returns (output, error).
+        """
+        if not PYRENODE_AVAILABLE:
+            return "", ""
+        
+        try:
+            # Echo command
+            if self.log_callback:
+                self.log_callback(f"(monitor) {command}")
+            
+            output, error = self.monitor.execute(command)
+            
+            if output and self.log_callback:
+                self.log_callback(output.strip())
+            
+            if error and self.log_callback:
+                self.log_callback(f"Error: {error.strip()}")
+                
+            return output, error
+        except Exception as e:
+            if self.log_callback:
+                self.log_callback(f"Exception executing '{command}': {e}")
+            raise e
+
+    def setup_logging(self, callback):
+        self.log_callback = callback
+        """
+        Sets up Renode logging to a temporary file and tails it, 
+        calling `callback` with each new line.
+        """
+        if not PYRENODE_AVAILABLE:
+            logger.warning("Logging not available in Mock mode")
+            return
+
+        # Create a temp file
+        fd, self.log_file_path = tempfile.mkstemp(prefix="renode_log_", suffix=".txt")
+        os.close(fd)
+        # Ensure it's empty/exists
+        with open(self.log_file_path, 'w') as f:
+            pass
+
+        logger.info(f"Renode logging to: {self.log_file_path}")
+
+        # Tell Renode to log to this file
+        try:
+            self.monitor.execute(f"logFile @{self.log_file_path}")
+            self.monitor.execute("logLevel 0") # Capture everything
+        except Exception as e:
+            logger.error(f"Failed to setup logFile: {e}")
+            return
+
+        # Start tailing thread
+        self.stop_logging_event = threading.Event()
+        self.log_thread = threading.Thread(
+            target=self._tail_log_file, 
+            args=(self.log_file_path, callback, self.stop_logging_event),
+            daemon=True
+        )
+        self.log_thread.start()
+
+    def _tail_log_file(self, path, callback, stop_event):
+        logger.info("Log tailing started")
+        try:
+            with open(path, "r") as f:
+                # Go to end? No, we want to see startup logs if any.
+                # But if we just created it, it's empty.
+                while not stop_event.is_set():
+                    line = f.readline()
+                    if line:
+                        callback(line.strip())
+                    else:
+                        time.sleep(0.1)
+        except Exception as e:
+            logger.error(f"Log tailing error: {e}")
+        finally:
+            logger.info("Log tailing stopped")
+
+    def cleanup(self):
+        if self.stop_logging_event:
+            self.stop_logging_event.set()
+        if self.log_thread:
+            self.log_thread.join(timeout=1.0)
+        
+        if self.log_file_path and os.path.exists(self.log_file_path):
+            try:
+                os.remove(self.log_file_path)
+            except OSError:
+                pass
+
+
     def load_script(self, path: str):
         logger.info(f"Loading script: {path}")
         if PYRENODE_AVAILABLE:
             try:
                 self.emulation.clear()
-                self.monitor.execute(f"i @{path}")
+                
+                # Use execute_script to properly capture errors
+                if self.log_callback:
+                    self.log_callback(f"(monitor) i @{path}")
+                
+                output, error = self.monitor.execute_script(path)
+                
+                if output and self.log_callback:
+                    self.log_callback(output.strip())
+                
+                if error:
+                    if self.log_callback:
+                        self.log_callback(f"Error: {error.strip()}")
+                    raise Exception(f"Renode Error: {error}")
+                    
                 logger.info("Script loaded successfully")
             except Exception as e:
                 logger.error("Failed to load script. Exception type: %s", type(e))
@@ -52,7 +178,10 @@ class RenodeWrapper:
         logger.info("Starting simulation...")
         if PYRENODE_AVAILABLE:
             try:
-                self.emulation.StartAll()
+                # self.emulation.StartAll()
+                output, error = self._execute_and_log("start")
+                if error:
+                     raise Exception(f"Renode Error: {error}")
                 self.running = True
                 logger.info("Simulation started")
             except Exception as e:
@@ -69,7 +198,10 @@ class RenodeWrapper:
         logger.info("Pausing simulation...")
         if PYRENODE_AVAILABLE:
             try:
-                self.emulation.PauseAll()
+                # self.emulation.PauseAll()
+                output, error = self._execute_and_log("pause")
+                if error:
+                     raise Exception(f"Renode Error: {error}")
                 self.running = False
                 logger.info("Simulation paused")
             except Exception as e:
@@ -84,7 +216,10 @@ class RenodeWrapper:
         logger.info("Resetting simulation...")
         if PYRENODE_AVAILABLE:
             try:
-                self.emulation.clear()
+                # self.emulation.clear()
+                output, error = self._execute_and_log("Clear")
+                if error:
+                     raise Exception(f"Renode Error: {error}")
                 self.running = False
                 logger.info("Simulation reset")
             except Exception as e:
@@ -107,3 +242,15 @@ class RenodeWrapper:
             # logger.debug(f"Reading memory at {hex(addr)}") # Commented out to avoid spam
             time.sleep(0.01) # fast read
             return 0xDEADBEEF # Mock value
+
+    def monitor_command(self, command: str):
+        """
+        Executes a monitor command from the UI.
+        """
+        logger.info(f"Executing monitor command: {command}")
+        try:
+            self._execute_and_log(command)
+        except Exception as e:
+            logger.error(f"Error executing monitor command: {e}")
+            # Error is already logged via _execute_and_log callback if possible, 
+            # or we can log it explicitly here if needed.

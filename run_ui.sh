@@ -63,15 +63,32 @@ if ! command -v "$PYTHON" >/dev/null 2>&1; then
     exit 2
 fi
 
+# Check for system dependencies
+MISSING_PACKAGES=""
+
 # Check for mono
 if ! command -v mono >/dev/null 2>&1; then
+    MISSING_PACKAGES="mono-complete"
+fi
+
+# Qt6 dependencies
+QT_DEPS="libxcb-cursor0 libxcb-xinerama0 libxcb-icccm4 libxcb-keysyms1 libxkbcommon-x11-0"
+
+for pkg in $QT_DEPS; do
+    if ! dpkg -s "$pkg" >/dev/null 2>&1; then
+        MISSING_PACKAGES="$MISSING_PACKAGES $pkg"
+    fi
+done
+
+if [ -n "$MISSING_PACKAGES" ]; then
     if [ "$EUID" -ne 0 ]; then
-        echo "Error: Mono is missing. Please run this script as root (sudo) to install dependencies." >&2
+        echo "Error: Missing system dependencies: $MISSING_PACKAGES" >&2
+        echo "Please run this script as root (sudo) to install dependencies." >&2
         echo "Usage: sudo $0 $@" >&2
         exit 1
     else
-        echo "Installing mono..."
-        DEBIAN_FRONTEND=noninteractive apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y mono-complete
+        echo "Installing missing dependencies: $MISSING_PACKAGES..."
+        DEBIAN_FRONTEND=noninteractive apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y $MISSING_PACKAGES
     fi
 fi
 

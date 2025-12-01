@@ -23,6 +23,8 @@ def main():
 
 
     app = QApplication(sys.argv)
+    from styles import DARK_THEME_QSS
+    app.setStyleSheet(DARK_THEME_QSS)
     loop = QEventLoop(app)
     asyncio.set_event_loop(loop)
 
